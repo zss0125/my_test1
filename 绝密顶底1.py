@@ -55,8 +55,8 @@ def security_name_to_code(security_name_list):
     stock_code_list = df['代码'].tolist() #删除重复元素所在行
     return stock_code_list
 
-list12 = security_name_to_code(security_name_list)
+list11 = security_name_to_code(security_name_list)
 
-print(list12)
+print(list11)
 # df2 = ak.fund_etf_spot_em()[['代码','名称']]
 # df2.to_csv('fund.csv')
