@@ -29,7 +29,7 @@ def timer(func):
 #获取证券数据库信息
 def get_security_info_df():
     if os.path.exists('证券数据.xlsx'):
-        df = pd.read_excel('证券数据.xlsx')
+        df = pd.read_excel('证券数据.xlsx',dtype={'代码': 'object'}) #读取数据，采用dtype保证原str不被转为int
     else:
         security_info_df = pd.concat([ak.stock_zh_a_spot_em()[['代码', '名称']],
                                       ak.fund_etf_spot_em()[['代码', '名称']]], axis=0)  # 获取所有证券名称和证券代码的df
@@ -37,7 +37,7 @@ def get_security_info_df():
         # print(security_info_df)
         # security_info_df.to_csv('证券数据.csv')
         security_info_df.to_excel ('证券数据.xlsx')
-        df = pd.read_excel(open('证券数据.xlsx', 'rb'))
+        df = pd.read_excel(open('证券数据.xlsx', 'rb'),dtype={'代码': 'object'})
     return df
 
 #证券名称转化为证券代码
@@ -55,6 +55,7 @@ def security_name_to_code1(base_df,name_list):
 
 def main():
     security_info_df = get_security_info_df()
+
     security_name_df = pd.read_excel(open('D:\股票整理\证券.xlsx', 'rb'),
                                      sheet_name='自选股', index_col=None)  # 读入股票名称数据
     security_name_list = security_name_df['证券名称'].tolist()  # 将股票df转换为股票list
