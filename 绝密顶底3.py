@@ -157,12 +157,19 @@ def main():
 
     print_date(end_date)
 
-
-    dingdi_df = juemi_dingdi(security_code_list, Period='daily',
-                         Start_Date=start_date, End_Date=end_date) #获得绝密顶底df,period={'daily', 'weekly', 'monthly'}
+    # 创建线程01，不指定参数
+    thread_01 = Thread(target = juemi_dingdi(security_code_list, Period='daily',
+                        Start_Date=start_date, End_Date=end_date))
+    # 启动线程01
+    thread_01.start()
+    # dingdi_df = juemi_dingdi(security_code_list, Period='daily',
+    #                          Start_Date=start_date, End_Date=end_date) #获得绝密顶底df,period={'daily', 'weekly', 'monthly'}
     end = time.perf_counter()
     print('我执行完了，函数运行时间: {}'.format(end - start))
-    print(dingdi_df)
+
+    # print(dingdi_df)
+
+
 
 
 if __name__ == '__main__':

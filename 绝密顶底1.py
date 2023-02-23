@@ -18,21 +18,22 @@ pd.set_option('display.width',1000)
 warnings.filterwarnings("ignore")  # 抑制警告
 
 #一个计算函数运行时长的装饰器
-def timer(func):
-    def wrapper(*args, **kw):
-        start = time.perf_counter()
-        print('我准备开始执行：{} 函数了:'.format(func.__name__))
-        # 真正执行的是这行。
-        func(*args, **kw)
-
-        end = time.perf_counter()
-        print('我执行完了，函数运行时间: {}'.format(end - start))
-    return wrapper
+# def timer(func):
+#     def wrapper(*args, **kw):
+#         start = time.perf_counter()
+#         print('我准备开始执行：{} 函数了:'.format(func.__name__))
+#         # 真正执行的是这行。
+#         func(*args, **kw)
+#
+#         end = time.perf_counter()
+#         print('我执行完了，函数运行时间: {}'.format(end - start))
+#     return wrapper
 
 security_name_df = pd.read_excel(open('D:\股票整理\证券.xlsx', 'rb'),
                               sheet_name='自选股', index_col= None)  # 读入股票名称数据
 #stock_name_list = stock_name_df.iloc[:,0].tolist() #将股票df转换为股票list
 security_name_list = security_name_df['证券名称'].tolist() #将股票df转换为股票list
+
 
 print(security_name_list)
 # stock_df = ak.stock_zh_a_spot_em()
@@ -43,6 +44,10 @@ print(security_name_list)
 security_info_df = pd.concat([ak.stock_zh_a_spot_em()[['代码', '名称']],
                               ak.fund_etf_spot_em()[['代码', '名称']]], axis=0)  # 获取所有证券名称和证券代码的df
 security_info_df['名称'] = security_info_df['名称'].str.replace(' ', '')
+
+df1 = security_info_df[security_info_df['名称'].isin (security_name_list)]  #yeah! 终于找到解决方案了
+df1.drop_duplicates('名称', inplace=True)
+print(df1)
 # def get_security_base():
 #     security_info_df = pd.concat([ak.stock_zh_a_spot_em()[['代码', '名称']],
 #                                   ak.fund_etf_spot_em()[['代码', '名称']]], axis=0)  # 获取所有证券名称和证券代码的df
@@ -73,7 +78,7 @@ security_info_dic = dict(zip(security_name_base, security_code_base))  # 以股�
 #     code_list.append(code)
 # print(code_list)
 
-@timer
+# @timer
 def security_name_to_code1(base_df,name_list):
     code_list = []
     name_base_list = base_df['名称'].tolist()  # 获取所有证券名称的列表
@@ -95,13 +100,12 @@ def security_name_to_code1(base_df,name_list):
 #     stock_code_list = df['代码'].tolist() #删除重复元素所在行
 #     return stock_code_list
 
-def main():
-
-    list2 = security_name_to_code1(security_name_list)
-
-    print(type(list2))
-
-if __name__ == '__main__':
-    main()
+# def main():
+#
+#     list2 = security_name_to_code1(security_name_list)
+#     print(type(list2))
+#
+# # if __name__ == '__main__':
+#     main()
 
 
