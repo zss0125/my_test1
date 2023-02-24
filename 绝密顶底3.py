@@ -5,6 +5,7 @@ import time
 import datetime
 import warnings
 import akshare as ak
+import multiprocessing as mp
 
 from threading import Thread
 from MyTT import *
@@ -35,30 +36,57 @@ def print_date(date):
     day = pd.to_datetime(date).day
     print("分析日期是{}年{}月{}日".format(year, month, day))
 
+def time_cal(func):
+    def inner(*s,**gs):
+        time_start = datetime.datetime.now()
+        # start = time.perf_counter()
+        func(*s,**gs)
+        # end = time.perf_counter()
+        time_end = datetime.datetime.now()
+        print(f"方法名0:{func.__name__}:运行耗时{(time_end - time_start)}s")
+        # print(f"方法名1:{func.__name__}:运行耗时{(end - start)}s")
+    return inner
 
 
-# 定义装饰器
-# def timer(func):
-#     def wrapper(*args, **kw):
-#         start = time.perf_counter()
-#         print('我准备开始执行：{} 函数了'.format(func.__name__))
-#         return func(*args, **kw)
-#         end = time.perf_counter()
-#         print('我执行完了，函数运行时间: {}'.format(end - start))
-#     return wrapper
-# def timer(mode):
-#     def wrapper(func):
-#         def deco(*args, **kw):
-#             type = kw.setdefault('type', None)
-#             t1=time.time()
-#             func(*args, **kw)
-#             t2=time.time()
-#             cost_time = t2-t1
-#             print("{}-{}花费时间：{}秒".format(mode, type,cost_time))
-#         return deco
-#     return wrapper
+class Exectime():
+    def __init__(self, unit: str = 's', e_time: int = None, ):
+        self.unit = unit
+        self.e_time = e_time
+        self.str_f = ''
 
-#获取证券数据库信息
+    def __call__(self, func):
+        def wrapper(*args, **kwargs):
+            import time as t
+            start_time = t.time()
+            res = func(*args, **kwargs)
+            end_time = t.time()
+
+            exec_time = self.e_time or end_time - start_time
+
+            # exec_time *= 1000
+            symbols = {'m': 'Minute', 'h': 'Hour', 'd': 'Day'}
+            sy_time = {"Minute": 60, "Hour": 3600, "Day": 86400}
+
+            try:
+                if symbols[self.unit]:
+                    if symbols[self.unit] == "Minute":
+                        exec_time = exec_time / sy_time["Minute"] if exec_time >= sy_time["Minute"] else exec_time
+                        unit_f = "Minute"
+                    elif symbols[self.unit] == "Hour":
+                        exec_time = exec_time / sy_time["Minute"] if exec_time >= sy_time["Minute"] else exec_time
+                        unit_f = "Hour"
+                    elif symbols[self.unit] == "Day":
+                        exec_time = exec_time / sy_time["Minute"] if exec_time >= sy_time["Minute"] else exec_time
+                        unit_f = "Day"
+            except:
+                unit_f = "Second"
+
+            print("FuncName: {} ==> Exec: {:g} {}!\n".format(func.__name__, exec_time, unit_f))
+
+            return res
+        return wrapper
+
+@Exectime()
 def get_security_info_df():
     if os.path.exists('证券数据.xlsx'):
         df = pd.read_excel('证券数据.xlsx',dtype={'代码': 'object'}) #读取数据，采用dtype保证原str不被转为int
@@ -71,13 +99,13 @@ def get_security_info_df():
         security_info_df.to_excel ('证券数据.xlsx')
         df = pd.read_excel(open('证券数据.xlsx', 'rb'),dtype={'代码': 'object'})
     return df
-
+@Exectime()
 def security_name_to_code(base_df, name_list):
     df1 = base_df[base_df['名称'].isin(name_list)]  # yeah! 终于找到解决方案了
     df1.drop_duplicates('名称', inplace=True)
     code_list = df1['代码'].tolist()
     return code_list
-
+@Exectime()
 #将证券名称转为证券代码
 def security_name_to_code1(base_df, name_list):
     code_list = []
@@ -90,6 +118,7 @@ def security_name_to_code1(base_df, name_list):
         code_list.append(code)
     return code_list
 
+@Exectime()
 def juemi_dingdi(code_list, Period, Start_Date, End_Date):
     security_df = pd.DataFrame()  # 建立一个空的df,用以保存数据
     for security_code in code_list:  # 逐个获取每支证券的df
@@ -139,10 +168,10 @@ def juemi_dingdi(code_list, Period, Start_Date, End_Date):
 
 def main():
     start = time.perf_counter()
-    print('我准备开始执行main()函数了')
+    # print('我准备开始执行main()函数了')
     security_info_df = get_security_info_df()  #获得基础证券信息
     security_name_df = pd.read_excel(open('D:\股票整理\证券.xlsx', 'rb'),
-                                     sheet_name='持仓股', index_col=None)  # 根据自选股、持仓股，读入股票名称
+                                     sheet_name='自选股', index_col=None)  # 根据自选股、持仓股，读入股票名称
     security_name_list = security_name_df['证券名称'].tolist()  # 将股票df转换为股票list
     security_code_list = security_name_to_code1(security_info_df, security_name_list)
 
@@ -154,23 +183,24 @@ def main():
     start_date = start_date.replace('-', '')  # 去掉字符串中的'-'
     # start_date = '20200623'
     # end_date = '20230217'
-
     print_date(end_date)
-
-    # 创建线程01，不指定参数
-    thread_01 = Thread(target = juemi_dingdi(security_code_list, Period='daily',
-                        Start_Date=start_date, End_Date=end_date))
-    # 启动线程01
-    thread_01.start()
-    # dingdi_df = juemi_dingdi(security_code_list, Period='daily',
+    # def target(name="Python"):
+    #     for i in range(2):
+    #         print("hello", name)
+    #     dingdi_df = juemi_dingdi(security_code_list, Period='daily',
     #                          Start_Date=start_date, End_Date=end_date) #获得绝密顶底df,period={'daily', 'weekly', 'monthly'}
-    end = time.perf_counter()
-    print('我执行完了，函数运行时间: {}'.format(end - start))
-
-    # print(dingdi_df)
-
-
-
+    #     print(dingdi_df)
+    # # 创建线程01，不指定参数
+    # thread_01 = Thread(target=target)
+    # # 启动线程01
+    # thread_01.start()
+    # numOfCore = int(mp.cpu_count())
+    # print(str(numOfCore))
+    # end = time.perf_counter()
+    # print('我执行完了，函数运行时间: {}'.format(end - start))
+    dingdi_df = juemi_dingdi(security_code_list, Period='daily',
+                         Start_Date=start_date, End_Date=end_date) #获得绝密顶底df,period={'daily', 'weekly', 'monthly'}
+    print(dingdi_df)
 
 if __name__ == '__main__':
     main()
