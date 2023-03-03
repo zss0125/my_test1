@@ -187,6 +187,7 @@ def main():
     start = time.perf_counter()
     security_info_df = ak.bond_zh_hs_cov_spot()
     security_info_df1 = security_info_df.loc[security_info_df['trade'] != '0.000'] #删除异常行
+    security_info_df1 = security_info_df1.loc[security_info_df['pricechange'] != '0.000'] #删除异常行
     print(security_info_df1)
 
     security_info_df1['symbol'] = security_info_df1['symbol'].apply(lambda x: x[2:8])
@@ -206,10 +207,12 @@ def main():
     client = Quotes.factory(market='std')
     for security_code in security_code_list:  # 逐个获取每支证券的df
         # k 线数据
-        df = client.bars(symbol=security_code, frequency=9, offset=120)
+        df = client.bars(symbol=security_code, frequency=9, start=0, offset=120)
+
 
         # -------改成MyTT的格式 -------------
         CLOSE = df['close'].values
+        # print(security_code, CLOSE)
         OPEN = df['open'].values  # 基础数据定义，只要传入的是序列都可以
         HIGH = df['high'].values
         LOW = df['low'].values
