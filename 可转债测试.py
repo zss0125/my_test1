@@ -97,44 +97,85 @@ def security_name_to_code1(base_df, name_list):
     return code_list
 
 
-def juemi_kezhuanzhai(code_list, fre, count):
+def juemi_kezhuanzhai(code_list, fre):
     client = Quotes.factory(market='std', multithread=True, heartbeat=True, bestip=True, timeout=15)
     security_df = pd.DataFrame()  # 建立一个空的df,用以保存数据
     for security_code in code_list:  # 逐个获取每支证券的df
         # k 线数据
-        df = client.bars(symbol='110044', frequency=fre, offset=count)
-        print(df.head())
-    #     # -------改成MyTT的格式 -------------
-    #     CLOSE = df['close'].values
-    #     OPEN = df['open'].values  # 基础数据定义，只要传入的是序列都可以
-    #     HIGH = df['high'].values
-    #     LOW = df['low'].values
-    #
-    #     # 根据通达信绝密顶底公司改写
-    #     Var1 = (CLOSE - LLV(LOW, 36)) / (HHV(HIGH, 36) - LLV(LOW, 36)) * 100
-    #     Var2 = SMA(Var1, 3, 1)
-    #     Var3 = SMA(Var2, 3, 1)
-    #     Var4 = SMA(Var3, 3, 1)
-    #     Var6 = (CROSS(Var3, Var4)) & (Var3 < 20)  # “抄底”序列
-    #     Var7 = (CROSS(Var4, Var3)) & (Var3 > 80)  # “逃顶”序列
-    #
-    #     security_df1 = pd.DataFrame({'证券代码': security_code,
-    #                                  "抄底": Var6, "逃顶": Var7})  # 生成一个具有抄底和逃顶信号的dataframe
-    #     security_df1 = security_df1.iloc[-1:]  # 获取End_Date的抄底逃顶信号
-    #     security_df = security_df.append(security_df1)  # 初步输出一个具有抄底逃顶信号的df
-    #
-    # security_df = pd.DataFrame(security_df, columns=['证券代码', '抄底', '逃顶'])
-    # security_df.set_index('证券代码', inplace=True)
-    # security_df = security_df.replace(True, '1')  # 为了直观的展示数据，将True用1表示，将False用0表示
-    # security_df = security_df.replace(False, '0')
-    # chaodi_df = security_df.query("'1' == 抄底")
-    # taoding_df = security_df.query("'1' == 逃顶")
-    # chaodi_number = chaodi_df.shape[0]
-    # taoding_number = taoding_df.shape[0]
-    # print("抄底股票数量是" + str(chaodi_number) + "个")
-    # print("逃顶股票数量是" + str(taoding_number) + "个")
-    # security_df = pd.concat([chaodi_df, taoding_df], axis=0)
-    # return security_df
+        df = client.bars(symbol=security_code, frequency=fre, offset=125)
+
+        # -------改成MyTT的格式 -------------
+        CLOSE = df['close'].values
+        OPEN = df['open'].values  # 基础数据定义，只要传入的是序列都可以
+        HIGH = df['high'].values
+        LOW = df['low'].values
+
+        # 根据通达信绝密顶底公司改写
+        Var1 = (CLOSE - LLV(LOW, 36)) / (HHV(HIGH, 36) - LLV(LOW, 36)) * 100
+        Var2 = SMA(Var1, 3, 1)
+        Var3 = SMA(Var2, 3, 1)
+        Var4 = SMA(Var3, 3, 1)
+        Var6 = (CROSS(Var3, Var4)) & (Var3 < 20)  # “抄底”序列
+        Var7 = (CROSS(Var4, Var3)) & (Var3 > 80)  # “逃顶”序列
+
+        security_df1 = pd.DataFrame({'证券代码': security_code,
+                                     "抄底": Var6, "逃顶": Var7})  # 生成一个具有抄底和逃顶信号的dataframe
+        security_df1 = security_df1.iloc[-1:]  # 获取End_Date的抄底逃顶信号
+        security_df = security_df.append(security_df1)  # 初步输出一个具有抄底逃顶信号的df
+
+    security_df = pd.DataFrame(security_df, columns=['证券代码', '抄底', '逃顶'])
+    security_df.set_index('证券代码', inplace=True)
+    security_df = security_df.replace(True, '1')  # 为了直观的展示数据，将True用1表示，将False用0表示
+    security_df = security_df.replace(False, '0')
+    chaodi_df = security_df.query("'1' == 抄底")
+    taoding_df = security_df.query("'1' == 逃顶")
+    chaodi_number = chaodi_df.shape[0]
+    taoding_number = taoding_df.shape[0]
+    print("抄底股票数量是" + str(chaodi_number) + "个")
+    print("逃顶股票数量是" + str(taoding_number) + "个")
+    security_df = pd.concat([chaodi_df, taoding_df], axis=0)
+    return security_df
+
+def tdx_dingdi(code_list, End_Date):
+    client = Quotes.factory(market='std', multithread=True, heartbeat=True, bestip=True, timeout=15)
+    security_df = pd.DataFrame()  # 建立一个空的df,用以保存数据
+    for security_code in code_list:  # 逐个获取每支证券的df
+        df = client.k(symbol=security_code, end=End_Date)
+        df = df.iloc[-120:,]
+        # print(df.head())
+        # print(df.tail())
+        # -------改成MyTT的格式 -------------
+        CLOSE = df['close'].values
+        OPEN = df['open'].values  # 基础数据定义，只要传入的是序列都可以
+        HIGH = df['high'].values
+        LOW = df['low'].values
+
+        # 根据通达信绝密顶底公司改写
+        Var1 = (CLOSE - LLV(LOW, 36)) / (HHV(HIGH, 36) - LLV(LOW, 36)) * 100
+        Var2 = SMA(Var1, 3, 1)
+        Var3 = SMA(Var2, 3, 1)
+        Var4 = SMA(Var3, 3, 1)
+        Var6 = (CROSS(Var3, Var4)) & (Var3 < 20)  # “抄底”序列
+        Var7 = (CROSS(Var4, Var3)) & (Var3 > 80)  # “逃顶”序列
+
+        security_df1 = pd.DataFrame({'证券代码': security_code,
+                                     "抄底": Var6, "逃顶": Var7})  # 生成一个具有抄底和逃顶信号的dataframe
+        security_df1 = security_df1.iloc[-1:]  # 获取End_Date的抄底逃顶信号
+        security_df = security_df.append(security_df1)  # 初步输出一个具有抄底逃顶信号的df
+
+    security_df = pd.DataFrame(security_df, columns=['证券代码', '抄底', '逃顶'])
+    security_df.set_index('证券代码', inplace=True)
+    security_df = security_df.replace(True, '1')  # 为了直观的展示数据，将True用1表示，将False用0表示
+    security_df = security_df.replace(False, '0')
+    chaodi_df = security_df.query("'1' == 抄底")
+    taoding_df = security_df.query("'1' == 逃顶")
+    chaodi_number = chaodi_df.shape[0]
+    taoding_number = taoding_df.shape[0]
+    print("抄底股票数量是" + str(chaodi_number) + "个")
+    print("逃顶股票数量是" + str(taoding_number) + "个")
+    security_df = pd.concat([chaodi_df, taoding_df], axis=0)
+    return security_df
+
 
 
 def juemi_dingdi(code_list, Period, Start_Date, End_Date):
@@ -185,10 +226,11 @@ def juemi_dingdi(code_list, Period, Start_Date, End_Date):
 
 def main():
     start = time.perf_counter()
-    security_info_df = ak.bond_zh_hs_cov_spot()
+    security_info_df = ak.bond_zh_hs_cov_spot() #可转债信息
     security_info_df1 = security_info_df.loc[security_info_df['trade'] != '0.000'] #删除异常行
     security_info_df1 = security_info_df1.loc[security_info_df['pricechange'] != '0.000'] #删除异常行
-    print(security_info_df1)
+
+    # print(security_info_df1)
 
     security_info_df1['symbol'] = security_info_df1['symbol'].apply(lambda x: x[2:8])
     security_code_list = security_info_df1['symbol'].tolist()
@@ -203,48 +245,27 @@ def main():
     # start_date = '20200623'
     # end_date = '20230217'
     print_date(end_date)
-    security_df = pd.DataFrame()  # 建立一个空的df,用以保存数据
-    client = Quotes.factory(market='std')
-    for security_code in security_code_list:  # 逐个获取每支证券的df
-        # k 线数据
-        df = client.bars(symbol=security_code, frequency=9, start=0, offset=120)
 
+    security_df = juemi_kezhuanzhai(code_list=security_code_list, fre=9)
+    # security_df = tdx_dingdi(code_list=security_code_list, End_Date='2023-02-24')
 
-        # -------改成MyTT的格式 -------------
-        CLOSE = df['close'].values
-        # print(security_code, CLOSE)
-        OPEN = df['open'].values  # 基础数据定义，只要传入的是序列都可以
-        HIGH = df['high'].values
-        LOW = df['low'].values
+    if security_df.empty:
+        print('{}没有合适的证券'.format(end_date))
+    else:
 
-        # 根据通达信绝密顶底公司改写
-        Var1 = (CLOSE - LLV(LOW, 36)) / (HHV(HIGH, 36) - LLV(LOW, 36)) * 100
-        Var2 = SMA(Var1, 3, 1)
-        Var3 = SMA(Var2, 3, 1)
-        Var4 = SMA(Var3, 3, 1)
-        Var6 = (CROSS(Var3, Var4)) & (Var3 < 20)  # “抄底”序列
-        Var7 = (CROSS(Var4, Var3)) & (Var3 > 80)  # “逃顶”序列
-
-        security_df1 = pd.DataFrame({'证券代码': security_code,
-                                     "抄底": Var6, "逃顶": Var7})  # 生成一个具有抄底和逃顶信号的dataframe
-        security_df1 = security_df1.iloc[-1:]  # 获取End_Date的抄底逃顶信号
-        security_df = security_df.append(security_df1)  # 初步输出一个具有抄底逃顶信号的df
-
-    security_df = pd.DataFrame(security_df, columns=['证券代码', '抄底', '逃顶'])
-    security_df.set_index('证券代码', inplace=True)
-    security_df = security_df.replace(True, '1')  # 为了直观的展示数据，将True用1表示，将False用0表示
-    security_df = security_df.replace(False, '0')
-    chaodi_df = security_df.query("'1' == 抄底")
-    taoding_df = security_df.query("'1' == 逃顶")
-    chaodi_number = chaodi_df.shape[0]
-    taoding_number = taoding_df.shape[0]
-    print("抄底股票数量是" + str(chaodi_number) + "个")
-    print("逃顶股票数量是" + str(taoding_number) + "个")
-    security_df = pd.concat([chaodi_df, taoding_df], axis=0)
+        dingdi_code = security_df.index.tolist()
+        security_info_df1 = pd.concat([security_info_df1.loc[security_info_df1['symbol'] == code]
+                                       for code in dingdi_code],ignore_index=True)   #根据代码获取证券原始信息矩阵
+        dingdi_name = security_info_df1['name'].values
+        security_df['证券名称'] = dingdi_name
+        security_df['证券代码'] = security_df.index
+        security_df.set_index('证券名称', inplace=True)
+        security_df = pd.DataFrame(security_df, columns=['证券代码', '抄底', '逃顶'])
 
     end = time.perf_counter()
     print('我执行完了，函数运行时间: {}'.format(end - start))
     print(security_df)
+
 
 
 if __name__ == '__main__':

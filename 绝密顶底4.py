@@ -5,9 +5,9 @@ import time
 import datetime
 import warnings
 import akshare as ak
-import multiprocessing as mp
+import qstock as qs
 
-from threading import Thread
+
 from MyTT import *
 
 pd.set_option('display.max_columns',None)  #显示所有列
@@ -165,6 +165,8 @@ def juemi_dingdi(code_list, Period, Start_Date, End_Date):
 
     security_df = pd.concat([chaodi_df, taoding_df], axis=0)
     return security_df
+
+
 
 def main():
     start = time.perf_counter()

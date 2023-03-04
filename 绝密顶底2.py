@@ -36,7 +36,6 @@ def print_date(date):
     print("分析日期是{}年{}月{}日".format(year, month, day))
 
 
-
 # 定义装饰器
 # def timer(func):
 #     def wrapper(*args, **kw):
@@ -139,12 +138,11 @@ def juemi_dingdi(code_list, Period, Start_Date, End_Date):
 
 def main():
     start = time.perf_counter()
-    print('我准备开始执行main()函数了')
     security_info_df = get_security_info_df()  #获得基础证券信息
     security_name_df = pd.read_excel(open('D:\股票整理\证券.xlsx', 'rb'),
-                                     sheet_name='持仓股', index_col=None)  # 根据自选股、持仓股，读入股票名称
+                                     sheet_name='自选股', index_col=None)  # 根据自选股、持仓股，读入股票名称
     security_name_list = security_name_df['证券名称'].tolist()  # 将股票df转换为股票list
-    security_code_list = security_name_to_code1(security_info_df, security_name_list)
+    security_code_list = security_name_to_code(security_info_df, security_name_list)
 
     end_date = datetime.datetime.now()  # 获取本地时间，标准时间格式，pd.to_datetime()可以将字符串转为标准时间格式
     start_date = end_date - datetime.timedelta(days=200)  # 本地时间减去190天为开始时间
@@ -154,9 +152,7 @@ def main():
     start_date = start_date.replace('-', '')  # 去掉字符串中的'-'
     # start_date = '20200623'
     # end_date = '20230217'
-
     print_date(end_date)
-
 
     dingdi_df = juemi_dingdi(security_code_list, Period='daily',
                          Start_Date=start_date, End_Date=end_date) #获得绝密顶底df,period={'daily', 'weekly', 'monthly'}
