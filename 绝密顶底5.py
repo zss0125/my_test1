@@ -17,6 +17,7 @@ pd.set_option('max_colwidth', 100)  # 设置value的显示长度
 pd.set_option('display.width', 1000)  # 设置1000列时才换行
 warnings.filterwarnings("ignore")  # 抑制警告
 
+#全局client对象
 client = Quotes.factory(market='std', multithread=True, heartbeat=True, bestip=True, timeout=15)
 
 # 一个计算函数运行时长的装饰器
@@ -131,7 +132,6 @@ def get_conbond_code():
     df = pd.DataFrame({'证券名称': security_name_list, '证券代码': security_code_list})
     # print(df.head())
     return df
-
 #返回默认数据
 def get_default():
     # 函数功能
@@ -196,18 +196,20 @@ def juemi_dingdi(code_list, fre):
     return security_df
 #根据数据类型和周期类型，获得最终的顶底df
 def get_dingdi_df():
+    today = datetime.datetime.now()  # 获取本地时间，标准时间格式，pd.to_datetime()可以将字符串转为标准时间格式
+    today = today.strftime('%Y-%m-%d')
+    File = open('{}证券筛选结果.txt'.format(today), mode='w')
+    df = pd.DataFrame()
     for scu_type in range(1,6):
         for period in [9,5]:
             scu_df = get_scu_df(scu_type)
             if period == 9:
-                print('正在进行日线分析')
+                print('正在进行日线分析...')
             elif period == 5:
-                print('正在进行周线分析')
+                print('正在进行周线分析...')
 
             scu_list = scu_df['证券代码'].values.tolist()
             dingdi_df = juemi_dingdi(code_list=scu_list, fre=period)  # 5:周K线 9:日K线
-            # print(dingdi_df.head())
-
 
             if dingdi_df.empty:
                 print('今日没有出现信号的证券')
@@ -223,23 +225,26 @@ def get_dingdi_df():
 
                 chaodi_df = dingdi_df.query("'1' == 抄底")  # 获得抄底的dataframe
                 chaodi_number = chaodi_df.shape[0]
-                print('抄底证券数量是' + str(chaodi_number) + "个")  # 输出抄底证券
+                print('抄底证券数量是' + str(chaodi_number) + '个')  # 输出抄底证券
+                File.write('抄底证券数量是' + str(chaodi_number) + '个\n')
                 if chaodi_number > 0:
                     chaodi_list = chaodi_df.index.tolist()
                     scu = (' '.join(chaodi_list))
                     print('抄底证券是:' + scu)
-
+                    File.write('抄底证券是:' + scu + '\n')
                 taoding_df = dingdi_df.query("'1' == 逃顶")
                 taoding_number = taoding_df.shape[0]
-                print('逃顶证券数量是' + str(taoding_number) + "个")
+                print('逃顶证券数量是' + str(taoding_number) + '个')
+                File.write('逃顶证券数量是' + str(taoding_number) + '个\n')
                 if taoding_number > 0:
                     taoding_list = taoding_df.index.tolist()
                     scu = (' '.join(taoding_list))
                     print('逃顶证券是:' + scu)
-
+                    File.write('逃顶证券是:' + scu + '\n')
                 dingdi_df = pd.concat([chaodi_df, taoding_df], axis=0)
+                df = df.append(dingdi_df)
                 print(dingdi_df)
-
+    df.to_excel('{}证券筛选结果.xlsx'.format(today))
 # 获取证券数据库信息，通过访问本地数据获取
 def get_security_info_df():
     if os.path.exists('证券数据.xlsx'):
@@ -355,49 +360,12 @@ def juemi_kezhuanzhai(code_list, Period, Start_Date, End_Date):
     security_df = pd.concat([chaodi_df, taoding_df], axis=0)
     return security_df
 
-
 def main():
     start = time.perf_counter()
     print_date()
     get_dingdi_df()
-    # scu_df = get_scu_df(2) #1:持仓股 2:自选股 3:沪深300 4:ETF 5:可转债
-    # scu_list = scu_df['证券代码'].values.tolist()
-    # # global client = Quotes.factory(market='std', multithread=True, heartbeat=True, bestip=True, timeout=15)
-    # dingdi_df = juemi_dingdi(code_list=scu_list, fre=9) #5:周K线 9:日K线
-    # if dingdi_df.empty:
-    #     print('今日没有出现信号的证券')
-    # else:
-    #     dingdi_code = dingdi_df.index.tolist()
-    #     scu_df = pd.concat([scu_df.loc[scu_df['证券代码'] == code]
-    #                                    for code in dingdi_code],ignore_index=True)   #根据代码获取证券原始信息矩阵
-    #     dingdi_name = scu_df['证券名称'].values.tolist()
-    #     dingdi_df['证券名称'] = dingdi_name
-    #     dingdi_df['证券代码'] = dingdi_df.index
-    #     dingdi_df.set_index('证券名称', inplace=True)
-    #     dingdi_df = pd.DataFrame(dingdi_df, columns=['证券代码', '抄底', '逃顶'])
-    #
-    #     chaodi_df = dingdi_df.query("'1' == 抄底")  #获得抄底的dataframe
-    #     chaodi_number = chaodi_df.shape[0]
-    #     print('抄底证券数量是' + str(chaodi_number) + "个")  #输出抄底证券
-    #     if chaodi_number > 0:
-    #         chaodi_list = chaodi_df.index.tolist()
-    #         scu = (' '.join(chaodi_list))
-    #         print('抄底证券是:' + scu)
-    #
-    #     taoding_df = dingdi_df.query("'1' == 逃顶")
-    #     taoding_number = taoding_df.shape[0]
-    #     print('逃顶证券数量是' + str(taoding_number) + "个")
-    #     if taoding_number > 0:
-    #         taoding_list = taoding_df.index.tolist()
-    #         scu = (' '.join(taoding_list))
-    #         print('逃顶证券是:' + scu)
-    #
-    #     dingdi_df = pd.concat([chaodi_df, taoding_df], axis=0)
-    # print(dingdi_df)
-
     end = time.perf_counter()
     print('我执行完了，函数运行时间: {}'.format(end - start))
-
 
 if __name__ == '__main__':
     main()
